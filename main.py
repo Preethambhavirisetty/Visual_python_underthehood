@@ -115,8 +115,15 @@ class ExecutionTracer:
             sys.settrace(self._trace)
             with redirect_stdout(out), redirect_stderr(err):
                 exec(code_obj, globals_dict, globals_dict)
-        except Exception:
+        except Exception as exc:
             self.exception_text = traceback.format_exc()
+            if isinstance(exc, ModuleNotFoundError) and getattr(exc, "name", None):
+                missing = exc.name
+                self.exception_text += (
+                    "\nHint: Missing package "
+                    f"'{missing}'. Install it in the backend environment with "
+                    f"`pip install {missing}` and restart the backend.\n"
+                )
         finally:
             sys.settrace(self._previous_trace)
             self.stdout = out.getvalue()
